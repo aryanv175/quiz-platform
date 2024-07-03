@@ -1,41 +1,55 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
 
-var app = express();
+mongoose.connect('mongodb+srv://aryanverma:S8J0LAsOZ9hPsXZ0@cluster0.eitqolz.mongodb.net/quiz-platform', { useNewUrlParser: true, useUnifiedTopology: true });
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
-
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+const QuizSchema = new mongoose.Schema({
+  title: String,
+  questions: [
+    {
+      text: String,
+      choices: [String],
+      correctAnswer: String
+    }
+  ]
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+const Quiz = mongoose.model('Quiz', QuizSchema);
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+app.post('/api/quizzes', async (req, res) => {
+  const quiz = new Quiz(req.body);
+  await quiz.save();
+  res.send(quiz);
 });
 
-module.exports = app;
+app.get('/api/quizzes', async (req, res) => {
+  const quizzes = await Quiz.find();
+  res.send(quizzes);
+});
+
+app.get('/api/quizzes/:id', async (req, res) => {
+  const quiz = await Quiz.findById(req.params.id);
+  res.send(quiz);
+});
+
+app.post('/api/quizzes/:id/submit', async (req, res) => {
+  const { answers } = req.body;
+  const quiz = await Quiz.findById(req.params.id);
+  let score = 0;
+  quiz.questions.forEach((question, index) => {
+    if (question.correctAnswer === answers[index]) {
+      score++;
+    }
+  });
+  res.send({ score });
+});
+
+app.listen(5000, () => {
+  console.log('Server is running on port 5000');
+});
