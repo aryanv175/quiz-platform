@@ -50,6 +50,4 @@ app.post('/api/quizzes/:id/submit', async (req, res) => {
   res.send({ score });
 });
 
-app.listen(5000, () => {
-  console.log('Server is running on port 5000');
-});
+module.exports = app;
